@@ -17,19 +17,30 @@ class Order extends Application {
 
     // start a new order
     function neworder() {
-        //FIXME
+        $order_num = $this->orders->highest() + 1;
+        
+        $neworder = $this->orders->create();
+        $neworder->num = $order_num;
+        $neworder->date = date();
+        $neworder->status = 'a';
+        $neworder->total = 0;
+        $this->orders->add($neworder);
 
         redirect('/order/display_menu/' . $order_num);
     }
 
-    // add to an order
+    // show the menu
     function display_menu($order_num = null) {
         if ($order_num == null)
             redirect('/order/neworder');
-
+        
+        //set view
         $this->data['pagebody'] = 'show_menu';
+        
+        //make title, with order num, and total of the order
         $this->data['order_num'] = $order_num;
-        //FIXME
+        $thetotal = $this->orders->total($order_num);
+        $this->data['title'] = "Order #".$order_num." (".$thetotal.")";
 
         // Make the columns
         $this->data['meals'] = $this->make_column('m');
@@ -44,7 +55,7 @@ class Order extends Application {
 	// 
 	// This means that we cannot reference order_num inside of any of the
 	// variable pair loops in our view, but must instead make sure
-	// that any such substitutions we wish make are injected into the 
+	///$ORDER/ that any such substitutions we wish make are injected into the 
 	// variable parameters
 	// Merge this fix into your origin/master for the lab!
 	$this->hokeyfix($this->data['meals'],$order_num);
@@ -64,28 +75,40 @@ class Order extends Application {
     // make a menu ordering column
     function make_column($category) {
         //FIXME
-        return $items;
+        return $this->menu->some('category', $category);
     }
 
     // add an item to an order
     function add($order_num, $item) {
-        //FIXME
+        $this->orders->add_item($order_num, $item); //add item to orderitems table, as implemented in model
         redirect('/order/display_menu/' . $order_num);
     }
 
     // checkout
     function checkout($order_num) {
+        
+        //Set view parameters for the checkout page, which uses the show_order view
         $this->data['title'] = 'Checking Out';
         $this->data['pagebody'] = 'show_order';
         $this->data['order_num'] = $order_num;
-        //FIXME
+        $this->data['total'] = number_format($this->orders->total($order_num), 2);
+        
+        $items = $this->orderitems->group($order_num); // get the orderitems records with $order_num as the order
+        foreach ($items as $item)
+        {
+            $menuitem = $this->menu->get($item->item); //get (first?) table record with the value $item->item
+            $item->code = $menuitem->name;
+        }
+        $this->data['items'] = $items;
+        $this->data['okornot'] = $this->orders->validate($order_num);
 
         $this->render();
     }
 
     // proceed with checkout
-    function proceed($order_num) {
-        //FIXME
+    function commit($order_num) {
+        if (!$this->orders->validate($order_num))
+            redirect('/order/display_menu' . $order_num);
         redirect('/');
     }
 
