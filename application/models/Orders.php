@@ -57,6 +57,9 @@ class Orders extends MY_Model {
 
     // cancel an order
     function flush($num) {
+        $CI = & get_instance();
+        $CI->load->model('orderitems');
+        $this->orderitems->delete_some($num); //delete orderitems records that were created in the process of creating this order
         
     }
 
