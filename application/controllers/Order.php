@@ -74,7 +74,6 @@ class Order extends Application {
     
     // make a menu ordering column
     function make_column($category) {
-        //FIXME
         return $this->menu->some('category', $category);
     }
 
@@ -108,13 +107,24 @@ class Order extends Application {
     // proceed with checkout
     function commit($order_num) {
         if (!$this->orders->validate($order_num))
-            redirect('/order/display_menu' . $order_num);
+            redirect('/order/display_menu/' . $order_num); //return to menu if not a valid order...       
+        
+        //set the order to completed, and set the date and total too
+        $record = $this->orders->get($order_num);
+        $record->date = date(DATE_ATOM);
+        $record->status = 'c';
+        $record->total = $this->orders->total($order_num);
+        $this->orders->update($record);
+        
         redirect('/');
     }
 
     // cancel the order
     function cancel($order_num) {
-        //FIXME
+        $this->orders->flush($order_num); //delete orderitems records that were created in the process of creating this order
+        $record = $this->orders->get($order_num);
+        $record->status = 'x';
+        $this->orders->update($record);
         redirect('/');
     }
 
